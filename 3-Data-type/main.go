@@ -1,4 +1,3 @@
-//gp:build data_type
 package main
 
 import "fmt"
