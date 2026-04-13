@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 )
 
@@ -76,6 +77,23 @@ func main() {
 
 	sort.Sort(sort.Reverse(sort.IntSlice(nums))) // 降序
 	fmt.Println(nums)
+
+	// 使用新版 go 包 slices
+	fmt.Println("--------------------------")
+
+	nums = []int{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5}
+	// 对切片进行排序和反转
+	slices.Sort(nums)
+	slices.Reverse(nums)
+	fmt.Println(nums)
+
+	nums = []int{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5}
+	// 使用自定义比较函数进行排序
+	slices.SortFunc(nums, func(a, b int) int {
+		return b - a // 降序排序
+	})
+	fmt.Println(nums)
+	//
 
 	// map
 	fmt.Println("--------------------------")
