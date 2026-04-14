@@ -2,26 +2,21 @@ package main
 
 import "fmt"
 
+// 1. 定义接口：只规定 '说话' 的行为
 type AnimalInterface interface {
 	speak()
 }
 
-type chicken struct {
-	name string
-}
+// 2. 具体类型实现接口（非侵入式，无需显式声明implements）
+type chicken struct{ name string }
 
-type cat struct {
-	name string
-}
+func (c chicken) speak() { fmt.Println("咯咯咯") }
 
-func (c chicken) speak() {
-	fmt.Println("咯咯咯")
-}
+type cat struct{ name string }
 
-func (c cat) speak() {
-	fmt.Println("喵喵喵")
-}
+func (c cat) speak() { fmt.Println("喵喵喵") }
 
+// 3. 通用函数：只依赖接口，不关心具体类型
 func speak(obj AnimalInterface) {
 	obj.speak()
 }
@@ -47,6 +42,10 @@ func say(obj AnimalInterface) {
 
 	// c := obj.(cat) // 断言类型, 不正确会报错
 	// c.speak()
+	c, ok := obj.(cat) // 断言类型 布尔类型
+	fmt.Println(c, ok)
+	c1, ok1 := obj.(chicken)
+	fmt.Println(c1, ok1)
 }
 
 // 空接口
