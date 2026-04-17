@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 type User struct {
@@ -68,6 +69,32 @@ func (u *User) DoMessage(msg string) {
 		u.SendMsg(fmt.Sprintf("%s]", onlineMsg))
 
 		u.serv.mapLock.Unlock()
+
+	} else if len(msg) > 3 && msg[:3] == "to:" {
+		// 处理私聊消息
+		recipientName := strings.Split(msg, ":")[1] // 提取接收者用户名
+
+		// 检查合法性
+		if recipientName == "" {
+			u.SendMsg("Invalid message format. Use 'to:username:message' format.")
+			return
+		}
+
+		remoteUser, exists := u.serv.UserMap[recipientName]
+		if !exists {
+			u.SendMsg("User does not exist.")
+			return
+		}
+
+		content := strings.Split(msg, ":")[2] // 提取消息内容
+		if content == "" {
+			u.SendMsg("Message content cannot be empty.")
+			return
+		}
+
+		// 发送私聊消息
+		remoteUser.SendMsg(fmt.Sprintf("[Private from %s]: %s", u.Name, content))
+
 	} else if len(msg) > 7 && msg[:7] == "rename:" {
 		newName := msg[7:] // 提取新用户名
 
@@ -89,6 +116,7 @@ func (u *User) DoMessage(msg string) {
 
 		// 向该用户回显新用户名修改成功的消息
 		u.SendMsg(fmt.Sprintf("Username changed to %s", newName))
+
 	} else {
 		// 广播用户消息
 		u.serv.Broadcast(fmt.Sprintf("[%s]: %s", u.Name, msg))

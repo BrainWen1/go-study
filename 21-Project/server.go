@@ -74,7 +74,7 @@ func (s *Server) Handler(conn net.Conn) {
 		select {
 		case <-user.isActive:
 			// 用户活跃，重置定时器
-		case <-time.After(10 * time.Second): // 为了测试方便，先设置10秒超时
+		case <-time.After(5 * time.Minute):
 			// 用户超时未活跃，强制下线
 			user.Offline()
 
