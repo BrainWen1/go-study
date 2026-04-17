@@ -6,20 +6,22 @@ import (
 )
 
 type User struct {
-	Name string      `json:"name"`
-	Addr string      `json:"address"`
-	Ch   chan string `json:"channel"`
-	Conn net.Conn    `json:"connection"`
-	serv *Server     `json:"server"`
+	Name     string
+	Addr     string
+	Ch       chan string
+	Conn     net.Conn
+	serv     *Server
+	isActive chan bool
 }
 
 func NewUser(conn net.Conn, server *Server) *User {
 	user := User{
-		Name: conn.RemoteAddr().String(),
-		Addr: conn.RemoteAddr().String(),
-		Ch:   make(chan string),
-		Conn: conn,
-		serv: server,
+		Name:     conn.RemoteAddr().String(),
+		Addr:     conn.RemoteAddr().String(),
+		Ch:       make(chan string),
+		Conn:     conn,
+		serv:     server,
+		isActive: make(chan bool),
 	}
 
 	// 启动监听用户消息的goroutine

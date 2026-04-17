@@ -7,19 +7,20 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Server struct {
 	// 服务器IP地址和端口
-	Ip   string `json:"ip"`
-	Port int    `json:"port"`
+	Ip   string
+	Port int
 
 	// 在线用户列表
-	UserMap map[string]*User `json:"user_map"`
-	mapLock sync.RWMutex     // 保护UserMap的读写锁
+	UserMap map[string]*User
+	mapLock sync.RWMutex // 保护UserMap的读写锁
 
 	// 消息广播的channel
-	ChBroad chan string `json:"ch_broad"`
+	ChBroad chan string
 }
 
 func NewServer(ip string, port int) *Server {
@@ -67,6 +68,22 @@ func (s *Server) Handler(conn net.Conn) {
 
 	// 处理用户消息
 	go s.ReadUserMsg(user)
+
+	// 监控用户是否活跃，若超时未活跃则强制下线
+	for {
+		select {
+		case <-user.isActive:
+			// 用户活跃，重置定时器
+		case <-time.After(10 * time.Second): // 为了测试方便，先设置10秒超时
+			// 用户超时未活跃，强制下线
+			user.Offline()
+
+			// 释放资源
+			conn.Close()
+			close(user.Ch)
+			return
+		}
+	}
 }
 
 func (s *Server) ReadUserMsg(user *User) {
@@ -93,6 +110,9 @@ func (s *Server) ReadUserMsg(user *User) {
 			// 广播用户消息
 			user.DoMessage(msg)
 		}
+
+		// 用户活跃
+		user.isActive <- true
 	}
 }
 
