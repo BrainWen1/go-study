@@ -11,15 +11,15 @@ import (
 
 type Server struct {
 	// 服务器IP地址和端口
-	Ip   string
-	Port int
+	Ip   string `json:"ip"`
+	Port int    `json:"port"`
 
 	// 在线用户列表
-	UserMap map[string]*User
-	mapLock sync.RWMutex // 保护UserMap的读写锁
+	UserMap map[string]*User `json:"user_map"`
+	mapLock sync.RWMutex     // 保护UserMap的读写锁
 
 	// 消息广播的channel
-	ChBroad chan string
+	ChBroad chan string `json:"ch_broad"`
 }
 
 func NewServer(ip string, port int) *Server {
@@ -60,15 +60,10 @@ func (s *Server) Start() {
 
 func (s *Server) Handler(conn net.Conn) {
 	// 创建一个用户对象
-	user := NewUser(conn)
+	user := NewUser(conn, s)
 
-	// 更新在线用户列表
-	s.mapLock.Lock()
-	s.UserMap[user.Name] = user
-	s.mapLock.Unlock()
-
-	// 广播用户上线消息
-	s.Broadcast(fmt.Sprintf("[%s]%s is online", user.Addr, user.Name))
+	// 用户上线
+	user.Online()
 
 	// 处理用户消息
 	go s.ReadUserMsg(user)
@@ -85,21 +80,18 @@ func (s *Server) ReadUserMsg(user *User) {
 				return
 			}
 
-			// 用户下线，更新在线用户列表
-			s.mapLock.Lock()
-			delete(s.UserMap, user.Name)
-			s.mapLock.Unlock()
+			// 用户下线
+			user.Offline()
 
-			// 广播用户下线消息
-			s.Broadcast(fmt.Sprintf("[%s]%s is offline", user.Addr, user.Name))
-
+			// 在服务端播报断开连接信息
 			fmt.Println("Client disconnected: ", user.Conn.RemoteAddr().String())
 			return
 		}
 
 		if len(msg) > 0 {
 			msg = strings.TrimRight(msg, "\r\n")
-			s.Broadcast(fmt.Sprintf("[%s]: %s", user.Name, msg))
+			// 广播用户消息
+			user.DoMessage(msg)
 		}
 	}
 }
