@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type Client struct {
@@ -18,6 +21,8 @@ type Client struct {
 
 	Name   string
 	option int // 用户选择的菜单选项
+
+	input *bufio.Reader // 用于读取用户输入的缓冲读取器
 }
 
 func NewClient(serverIp string, serverPort int) *Client {
@@ -34,6 +39,7 @@ func NewClient(serverIp string, serverPort int) *Client {
 		ServerPort: serverPort,
 		conn:       conn,
 		Name:       conn.LocalAddr().String(),
+		input:      bufio.NewReader(os.Stdin),
 	}
 
 	return client
@@ -45,7 +51,21 @@ func (c *Client) menu() bool {
 	fmt.Println("3. Update User Name")
 	fmt.Println("0. Exit")
 
-	fmt.Scanln(&c.option)
+	// 使用有缓冲读取整行输入，直到用户按下回车键
+	line, err := c.input.ReadString('\n')
+	if err != nil {
+		fmt.Println("read menu option err:", err)
+		return false
+	}
+
+	// 去除输入开头和结尾的空白字符，并将输入转换为整数
+	option, err := strconv.Atoi(strings.TrimSpace(line))
+	if err != nil {
+		fmt.Println("Invalid option, please enter number 0-3.")
+		return false
+	}
+
+	c.option = option
 
 	if c.option >= 0 && c.option <= 3 {
 		return true
@@ -57,16 +77,56 @@ func (c *Client) menu() bool {
 
 func (c *Client) UpdateName() bool {
 	fmt.Println("Enter new user name:")
-	fmt.Scanln(&c.Name)
+
+	name, err := c.input.ReadString('\n')
+	if err != nil {
+		fmt.Println("read user name err:", err)
+		return false
+	}
+
+	c.Name = strings.TrimSpace(name)
+	if c.Name == "" {
+		fmt.Println("User name cannot be empty.")
+		return false
+	}
 
 	// 发送更新用户名的消息给服务器
 	msg := fmt.Sprintf("rename:%s\n", c.Name)
-	_, err := c.conn.Write([]byte(msg))
+	_, err = c.conn.Write([]byte(msg))
 	if err != nil {
 		fmt.Println("c.conn.Write err:", err)
 		return false
 	}
 	return true
+}
+
+func (c *Client) PublicChat() {
+	for {
+		fmt.Println("Enter message to send (type 'exit' to return to menu):")
+
+		// 使用有缓冲读取整行输入，直到用户按下回车键
+		msg, err := c.input.ReadString('\n')
+		if err != nil {
+			fmt.Println("read message err:", err)
+			return
+		}
+
+		// 去除输入消息开头和结尾的空白字符
+		msg = strings.TrimSpace(msg)
+
+		if msg == "exit" {
+			break
+		} else if msg == "" {
+			continue
+		}
+
+		// 发送消息给服务器
+		_, err = c.conn.Write([]byte(msg + "\n"))
+		if err != nil {
+			fmt.Println("c.conn.Write err:", err)
+			return
+		}
+	}
 }
 
 func (c *Client) Run() {
@@ -79,6 +139,7 @@ func (c *Client) Run() {
 		switch c.option {
 		case 1: // 公聊
 			fmt.Println("Public Chat selected")
+			c.PublicChat()
 		case 2: // 私聊
 			fmt.Println("Private Chat selected")
 		case 3: // 更新用户名
