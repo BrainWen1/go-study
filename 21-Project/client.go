@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -53,6 +55,20 @@ func (c *Client) menu() bool {
 	}
 }
 
+func (c *Client) UpdateName() bool {
+	fmt.Println("Enter new user name:")
+	fmt.Scanln(&c.Name)
+
+	// 发送更新用户名的消息给服务器
+	msg := fmt.Sprintf("rename:%s\n", c.Name)
+	_, err := c.conn.Write([]byte(msg))
+	if err != nil {
+		fmt.Println("c.conn.Write err:", err)
+		return false
+	}
+	return true
+}
+
 func (c *Client) Run() {
 	for {
 		if !c.menu() {
@@ -67,11 +83,17 @@ func (c *Client) Run() {
 			fmt.Println("Private Chat selected")
 		case 3: // 更新用户名
 			fmt.Println("Update User Name selected")
+			c.UpdateName()
 		case 0: // 退出
 			fmt.Println("Exiting...")
 			return
 		}
 	}
+}
+
+func (c *Client) ListenMsg() {
+	// 把连接重定向到标准输出
+	io.Copy(os.Stdout, c.conn)
 }
 
 // 命令行参数绑定
@@ -99,5 +121,6 @@ func main() {
 	fmt.Printf("Success to connect server, ServerAddr: [%s, %d]\n", client.ServerIp, client.ServerPort)
 
 	// 阻塞处理业务
+	go client.ListenMsg() // 启动监听服务器消息的goroutine
 	client.Run()
 }
