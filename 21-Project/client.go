@@ -14,7 +14,8 @@ type Client struct {
 	// 连接到服务器的TCP连接
 	conn net.Conn
 
-	Name string
+	Name   string
+	option int // 用户选择的菜单选项
 }
 
 func NewClient(serverIp string, serverPort int) *Client {
@@ -34,6 +35,43 @@ func NewClient(serverIp string, serverPort int) *Client {
 	}
 
 	return client
+}
+
+func (c *Client) menu() bool {
+	fmt.Println("1. Public Chat")
+	fmt.Println("2. Private Chat")
+	fmt.Println("3. Update User Name")
+	fmt.Println("0. Exit")
+
+	fmt.Scanln(&c.option)
+
+	if c.option >= 0 && c.option <= 3 {
+		return true
+	} else {
+		fmt.Println("Invalid option, please try again.")
+		return false
+	}
+}
+
+func (c *Client) Run() {
+	for {
+		if !c.menu() {
+			continue
+		}
+
+		// 根据用户选择的菜单选项执行相应的操作
+		switch c.option {
+		case 1: // 公聊
+			fmt.Println("Public Chat selected")
+		case 2: // 私聊
+			fmt.Println("Private Chat selected")
+		case 3: // 更新用户名
+			fmt.Println("Update User Name selected")
+		case 0: // 退出
+			fmt.Println("Exiting...")
+			return
+		}
+	}
 }
 
 // 命令行参数绑定
@@ -61,6 +99,5 @@ func main() {
 	fmt.Printf("Success to connect server, ServerAddr: [%s, %d]\n", client.ServerIp, client.ServerPort)
 
 	// 阻塞处理业务
-	for {
-	}
+	client.Run()
 }
