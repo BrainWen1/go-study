@@ -70,9 +70,15 @@ func (u *User) DoMessage(msg string) {
 
 		u.serv.mapLock.Unlock()
 
-	} else if len(msg) > 3 && msg[:3] == "to:" {
+	} else if strings.HasPrefix(msg, "to:") {
 		// 处理私聊消息
-		recipientName := strings.Split(msg, ":")[1] // 提取接收者用户名
+		parts := strings.SplitN(msg, ":", 3)
+		if len(parts) < 3 {
+			u.SendMsg("Invalid message format. Use 'to:username:message' format.")
+			return
+		}
+
+		recipientName := strings.TrimSpace(parts[1]) // 提取接收者用户名
 
 		// 检查合法性
 		if recipientName == "" {
@@ -80,13 +86,14 @@ func (u *User) DoMessage(msg string) {
 			return
 		}
 
+		// 检查接收者是否存在
 		remoteUser, exists := u.serv.UserMap[recipientName]
 		if !exists {
 			u.SendMsg("User does not exist.")
 			return
 		}
 
-		content := strings.Split(msg, ":")[2] // 提取消息内容
+		content := parts[2] // 提取消息内容，允许内容中继续包含冒号
 		if content == "" {
 			u.SendMsg("Message content cannot be empty.")
 			return

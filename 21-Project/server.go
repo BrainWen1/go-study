@@ -87,6 +87,7 @@ func (s *Server) Handler(conn net.Conn) {
 }
 
 func (s *Server) ReadUserMsg(user *User) {
+	// 服务器从用户连接中读取消息，所以后续只需要把用户的请求写到连接中即可
 	reader := bufio.NewReader(user.Conn)
 	for {
 		msg, err := reader.ReadString('\n')

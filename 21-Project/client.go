@@ -129,6 +129,69 @@ func (c *Client) PublicChat() {
 	}
 }
 
+func (c *Client) PrivateChat() {
+	// 显示在线用户列表
+	c.ShowOnlineUsers()
+
+	for {
+		// 选择私聊对象
+		var target string
+		fmt.Println("user name to chat with (type 'exit' to return to menu):")
+
+		target, err := c.input.ReadString('\n')
+		if err != nil {
+			fmt.Println("read target user name err:", err)
+			return
+		}
+
+		target = strings.TrimSpace(target)
+
+		if target == "exit" {
+			break
+		} else if target == "" {
+			fmt.Println("Target user name cannot be empty.")
+			continue
+		}
+
+		// 输入私聊消息并处理后发送回服务器
+		for {
+			fmt.Printf("message to send to '%s' (type 'exit' to choose another user):\n", target)
+
+			// 使用有缓冲读取整行输入，直到用户按下回车键
+			msg, err := c.input.ReadString('\n')
+			if err != nil {
+				fmt.Println("read message err:", err)
+				return
+			}
+
+			// 去除输入消息开头和结尾的空白字符
+			msg = strings.TrimSpace(msg)
+
+			if msg == "exit" {
+				break
+			} else if msg == "" {
+				continue
+			}
+
+			// 发送私聊消息给服务器，格式为 "to|target|message"
+			_, err = c.conn.Write([]byte(fmt.Sprintf("to:%s:%s\n", target, msg)))
+			if err != nil {
+				fmt.Println("c.conn.Write err:", err)
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) ShowOnlineUsers() {
+	// 发送查询在线用户的消息给服务器
+	_, err := c.conn.Write([]byte("who\n"))
+	if err != nil {
+		fmt.Println("c.conn.Write err:", err)
+		return
+	}
+}
+
 func (c *Client) Run() {
 	for {
 		if !c.menu() {
@@ -142,6 +205,7 @@ func (c *Client) Run() {
 			c.PublicChat()
 		case 2: // 私聊
 			fmt.Println("Private Chat selected")
+			c.PrivateChat()
 		case 3: // 更新用户名
 			fmt.Println("Update User Name selected")
 			c.UpdateName()
